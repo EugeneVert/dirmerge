@@ -2,7 +2,11 @@
 name = "dirmerge"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Directory merging library"
+readme = "README.md"
+license = "MIT"
+keywords = ["filesystem", "recursive", "copy"]
+categories = ["filesystem"]
+include = ["**/*.rs", "Cargo.toml", "LICENSE", "README.md"]
 
 [dependencies]
