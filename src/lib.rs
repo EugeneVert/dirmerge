@@ -13,18 +13,22 @@ pub struct Entry {
     pub _type: Type,
 }
 
+impl TryFrom<&str> for Entry {
+    type Error = std::io::Error;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::new(PathBuf::from(value))
+    }
+}
+
 impl Entry {
-    pub fn new(path: &Path) -> std::io::Result<Self> {
+    pub fn new(path: PathBuf) -> std::io::Result<Self> {
         let filetype = path.metadata()?.file_type();
         let _type = if filetype.is_dir() {
             Type::Dir
         } else {
             Type::File
         };
-        Ok(Self {
-            path: path.to_owned(),
-            _type,
-        })
+        Ok(Self { path, _type })
     }
 
     pub fn mov(&self, to: &Path, overwrite: bool) -> std::io::Result<()> {
@@ -94,7 +98,7 @@ fn read_dir(path: &Path) -> std::io::Result<Vec<Entry>> {
         .map(|dirent| -> std::io::Result<Entry> {
             let dirent = dirent?;
             let path = dirent.path();
-            Entry::new(&path)
+            Entry::new(path)
         })
         .collect()
 }
