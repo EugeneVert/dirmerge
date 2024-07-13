@@ -3,32 +3,29 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Type {
     File,
     Dir,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Entry {
     pub path: PathBuf,
     pub _type: Type,
 }
 
-impl TryFrom<&str> for Entry {
-    type Error = std::io::Error;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::new(PathBuf::from(value))
+impl<T: AsRef<Path>> From<T> for Entry {
+    fn from(value: T) -> Self {
+        let path = value.as_ref().to_path_buf();
+        Entry::new(path)
     }
 }
 
 impl Entry {
-    pub fn new(path: PathBuf) -> std::io::Result<Self> {
-        let filetype = path.metadata()?.file_type();
-        let _type = if filetype.is_dir() {
-            Type::Dir
-        } else {
-            Type::File
-        };
-        Ok(Self { path, _type })
+    pub fn new(path: PathBuf) -> Self {
+        let _type = if path.is_dir() { Type::Dir } else { Type::File };
+        Self { path, _type }
     }
 
     pub fn mov(&self, to: &Path, overwrite: bool) -> std::io::Result<()> {
@@ -62,6 +59,7 @@ impl Entry {
                 }
 
                 for dirent in read_dir(&self.path)? {
+                    let dirent = dirent?;
                     let to = to.join(dirent.path.file_name().unwrap());
                     dirent.mov(&to, overwrite)?;
                 }
@@ -84,6 +82,7 @@ impl Entry {
                     fs::create_dir(to)?;
                 }
                 for dirent in read_dir(&self.path)? {
+                    let dirent = dirent?;
                     let to = to.join(dirent.path.file_name().unwrap());
                     dirent.copy(&to, overwrite)?;
                 }
@@ -93,12 +92,10 @@ impl Entry {
     }
 }
 
-fn read_dir(path: &Path) -> std::io::Result<Vec<Entry>> {
-    path.read_dir()?
-        .map(|dirent| -> std::io::Result<Entry> {
-            let dirent = dirent?;
-            let path = dirent.path();
-            Entry::new(path)
-        })
-        .collect()
+fn read_dir(path: &Path) -> std::io::Result<impl Iterator<Item = std::io::Result<Entry>>> {
+    Ok(path.read_dir()?.map(|dirent| -> std::io::Result<Entry> {
+        let dirent = dirent?;
+        let path = dirent.path();
+        Ok(Entry::new(path))
+    }))
 }
